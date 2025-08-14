@@ -86,9 +86,6 @@ Implementar um **serviço de processamento de logs** com as seguintes regras:
 * Requer validação e testes extensivos para evitar inconsistências.
 * Processamento síncrono pode ser custoso para arquivos muito grandes (possível melhoria futura com fila de mensagens).
 
-Perfeito. Aqui está a ADR focada na decisão sobre uso do **README detalhado** como parte da estratégia de documentação da aplicação:
-
-
 ## ADR-004: Uso de README Detalhado como Documento Principal de Referência
 
 **Status**: Aceito
@@ -130,4 +127,122 @@ Utilizar o arquivo **`README.md`** como documento principal de referência do pr
 
 * Exige disciplina para manter o README atualizado conforme o projeto evolui.
 * Pode tornar-se extenso, demandando organização clara e tópicos bem estruturados.
+
+## ADR-005: Ranking Global de Jogadores 
+
+**Status**: Aceito
+**Data**: 2025-08-14
+
+### Contexto
+
+Precisamos expor um **ranking consolidado de todos os jogadores** considerando **todas as partidas processadas**, respeitando as regras de negócio (ex.: **frags de `<WORLD>` não contam** como abates de jogador). O ranking deve permitir **paginação** e **ordenação determinística** (ex.: por frags, mortes, K/D), mantendo baixa complexidade operacional.
+
+### Decisão
+
+Calcular o ranking **on-demand** diretamente no **PostgreSQL** a partir das tabelas `kills` e `matches`, com **índices dedicados** para suportar agregações frequentes. Empates serão resolvidos por `frags desc`, depois `deaths asc` e `name asc`. Manter opção de **cache** futuro (ex.: Redis) se necessário.
+
+### Consequências
+
+**Vantagens**:
+
+* Dados **sempre atualizados** sem pipelines de materialização.
+* **Menor complexidade operacional** (fonte única de verdade nas tabelas transacionais).
+* Fácil evolução das regras de ordenação.
+
+**Desvantagens**:
+
+* Consultas podem ficar **pesadas em alto volume**, exigindo **índices** e, potencialmente, **cache**.
+
+---
+
+## ADR-006: Arma Preferida do Vencedor — Critérios e Cálculo
+
+**Status**: Aceito
+**Data**: 2025-08-14
+
+### Contexto
+
+Para cada partida, devemos identificar o **vencedor** (jogador com **mais frags**, ignorando `<WORLD>`) e sua **arma preferida** (arma **mais utilizada** pelo vencedor naquela partida). Precisamos definir desempates e manter performance sem alterar o schema.
+
+### Decisão
+
+1. **Vencedor da partida**: jogador com maior `frags` em `kills` para o `match_id`, **excluindo `<WORLD>`**.
+   Critérios de desempate: `deaths asc` → **último frag mais cedo** (`MAX(kill_time)` menor) → `name asc`.
+2. **Arma preferida**: `weapon_name` com **maior contagem** de kills do vencedor naquele `match_id`, empate por `weapon_name asc`.
+
+### Consequências
+
+**Vantagens**:
+
+* **Sem mudanças de schema**.
+* Boa performance com **GROUP BY** + **índices**.
+
+
+**Desvantagens**:
+
+* Requer atenção a **colunas e índices** para evitar *full scans*.
+* Regras de desempate adicionam **complexidade** de consulta/serviço.
+
+
+## ADR-007: Maior Sequência de Frags (Streak) — Definição e Cálculo
+
+**Status**: Aceito
+**Data**: 2025-08-14
+
+### Contexto
+
+Precisamos descobrir, **por partida**, a **maior sequência de frags** efetuados por um jogador **sem morrer** no intervalo, respeitando a ordem temporal dos eventos.
+
+### Decisão
+
+Calcular o **streak** em **nível de serviço** (camada de aplicação), processando os eventos do `match_id` **ordenados por `kill_time`**:
+
+* Incrementar o contador do **mesmo killer** a cada kill (excluindo `<WORLD>` como killer).
+* Rastrear o **máximo** por jogador e o **máximo geral** da partida.
+  Persistência **não necessária** (cálculo sob demanda); expor via endpoint/consulta específica se requerido.
+
+### Consequências
+
+**Vantagens**:
+
+* Sem dependência de SQL.
+* **Fácil evolução**.
+
+**Desvantagens**:
+
+* Processamento **em memória** por partida; pode exigir otimização para logs muito grandes.
+
+
+## ADR-008: Awards Específicos — NoDeathAward e SpeedKillerAward
+
+**Status**: Aceito
+**Data**: 2025-08-14
+
+### Contexto
+
+Devemos conceder **prêmios** conforme regras:
+
+* **NoDeathAward**: jogadores que **venceram a partida** (maior frags, excluindo `<WORLD>`) **sem morrer**.
+* **SpeedKillerAward**: jogadores que **realizarem 5 frags em 1 minuto** dentro da **mesma partida** (excluindo `<WORLD>` como killer).
+  É necessário padronizar critérios, empates e limites.
+
+### Decisão
+
+* **NoDeathAward**: após determinar o vencedor (ADR-006), conceder o award se `deaths = 0`. Em caso de **co-vencedores**, todos com `deaths = 0` recebem.
+* **SpeedKillerAward**: detectar **janela deslizante de 60s** por jogador e partida:
+
+  * Ordenar kills por `kill_time` (onde `killer_name <> '<WORLD>'`);
+  * Conceder o award **uma vez por partida por jogador** (mesmo que haja múltiplas janelas).
+* Implementar na **camada de serviço**, reaproveitando os eventos em memória; manter alternativa futura em SQL com **window functions** se necessário.
+
+### Consequências
+
+**Vantagens**:
+
+* Regras **explícitas** e aderentes ao domínio; fácil auditoria (timestamps).
+* Possível reutilizar a mesma varredura de eventos para **streak** e **speed**.
+
+**Desvantagens**:
+
+* Pode exigir **normalização de timezone**.
 

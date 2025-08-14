@@ -11,10 +11,12 @@ const mockMatchRepository = () => ({
   create: jest.fn(),
   save: jest.fn(match => match),
   findOneBy: jest.fn(),
+  findOne: jest.fn(),
 });
 
 const mockKillRepository = () => ({
   create: jest.fn(kill => kill),
+  findBy: jest.fn().mockResolvedValue([]), 
   save: jest.fn(),
     createQueryBuilder: jest.fn(() => ({
     select: jest.fn().mockReturnThis(),
@@ -92,26 +94,26 @@ describe('MatchesService', () => {
         expect(result.alreadyExists.length).toBe(0);
       });
   
-      it('Deve lidar com erros de conflito e salvar as outras partidas', async () => {
-        let saveCount = 0;
-        (matchRepository.save as jest.Mock).mockImplementation(match => {
-          saveCount++;
-          if (saveCount === 1) {
-            const error = new Error('duplicate key value violates unique constraint');
-            (error as any).code = '23505';
-            throw error;
-          }
-          return { ...match, id: 'uuid-' + match.matchId };
-        });
-        (killRepository.create as jest.Mock).mockImplementation(kill => ({ ...kill, id: 'kill-uuid' }));
-  
-        const result = await service.processMatchFile(mockFile);
-        
-        expect(result.savedMatches.length).toBe(1);
-        expect(result.alreadyExists.length).toBe(1);
-        expect(result.alreadyExists[0].matchId).toBe(1);
-        expect(result.savedMatches[0].matchId).toBe(2);
+    it('Deve lidar com erros de conflito e salvar as outras partidas', async () => {
+      let saveCount = 0;
+      (matchRepository.save as jest.Mock).mockImplementation(match => {
+        saveCount++;
+        if (saveCount === 1) {
+          const error = new Error('duplicate key value violates unique constraint');
+          (error as any).code = '23505';
+          throw error;
+        }
+        return { ...match, id: 'uuid-' + match.matchId };
       });
+      (killRepository.create as jest.Mock).mockImplementation(kill => ({ ...kill, id: 'kill-uuid' }));
+
+      const result = await service.processMatchFile(mockFile);
+      
+      expect(result.savedMatches.length).toBe(1);
+      expect(result.alreadyExists.length).toBe(1);
+      expect(result.alreadyExists[0].matchId).toBe(1);
+      expect(result.savedMatches[0].matchId).toBe(2);
+    });
 
     it('Deve lançar um erro se nenhuma partida válida for encontrada', async () => {
       const invalidFile: Express.Multer.File = {
@@ -124,17 +126,18 @@ describe('MatchesService', () => {
   });
 
   describe('Deve obter ranking da partida', () => {
-      const mockMatch = { id: 'match-uuid', matchId: 1, rawLog: '', kills: [], startDate: new Date(), endDate: new Date() };
-
+    const mockMatch = { id: 'match-uuid', matchId: 1, rawLog: '', kills: [], startDate: new Date(), endDate: new Date() };
+    
     it('Deve lançar NotFoundException se a partida não existir', async () => {
-        (matchRepository.findOneBy as jest.Mock).mockResolvedValue(undefined);
-
+        (matchRepository.findOne as jest.Mock).mockResolvedValue(undefined);
         await expect(service.getMatchRanking(999)).rejects.toThrow(NotFoundException);
-        expect(matchRepository.findOneBy).toHaveBeenCalledWith({ matchId: 999 });
+        expect(matchRepository.findOne).toHaveBeenCalledWith({ where: { matchId: 999 }, relations: ['kills'] });
     });
 
     it('Deve retornar um ranking correto ordenado por frags', async () => {
-        (matchRepository.findOneBy as jest.Mock).mockResolvedValue(mockMatch);
+        const mockMatch = { id: 'match-uuid', matchId: 1, rawLog: '', kills: [], startDate: new Date(), endDate: new Date() };
+
+        (matchRepository.findOne as jest.Mock).mockResolvedValue(mockMatch);
 
         const fragsCount = [
             { playerName: 'PlayerA', frags: '10' },
@@ -177,20 +180,19 @@ describe('MatchesService', () => {
           winner: 'PlayerA',
           favoriteWeapon: 'M16',
           ranking: [
-            { playerName: 'PlayerA', frags: 10, deaths: 0 },
-            { playerName: 'PlayerB', frags: 5, deaths: 2 },
-            { playerName: 'PlayerC', frags: 1, deaths: 8 },
-            { playerName: 'PlayerD', frags: 0, deaths: 0 },
-            { playerName: 'PlayerE', frags: 0, deaths: 5 },
+            { playerName: 'PlayerA', frags: 10, deaths: 0, killStreak: 0, awards: { NoDeathAward: true, SpeedKillerAward: false } },
+            { playerName: 'PlayerB', frags: 5, deaths: 2, killStreak: 0, awards: { NoDeathAward: false, SpeedKillerAward: false } },
+            { playerName: 'PlayerC', frags: 1, deaths: 8, killStreak: 0, awards: { NoDeathAward: false, SpeedKillerAward: false } },
+            { playerName: 'PlayerD', frags: 0, deaths: 0, killStreak: 0, awards: { NoDeathAward: true, SpeedKillerAward: false } },
+            { playerName: 'PlayerE', frags: 0, deaths: 5, killStreak: 0, awards: { NoDeathAward: false, SpeedKillerAward: false } },
           ],
         });
         
         expect(killRepository.createQueryBuilder).toHaveBeenCalledTimes(4);
-
     });
-  });
+ });
 
-  describe('getGlobalRanking', () => {
+  describe('Deve obter ranking global por partidas', () => {
     it('Deve retornar o ranking global ordenado por frags', async () => {
         const fragsCount = [
             { playerName: 'PlayerA', frags: '15' },

@@ -4,6 +4,7 @@ import { MatchesService } from './matches.service';
 import { ApiTags, ApiOperation, ApiResponse, ApiConsumes, ApiBody, ApiParam, ApiQuery } from '@nestjs/swagger';
 import { RankingResponseDto } from './dto/ranking-response.dto';
 import { PaginationDto } from './dto/pagination.dto';
+import { MatchRankingResponseDto } from './dto/match-ranking-response.dto'; 
 
 import 'multer';
 
@@ -76,7 +77,7 @@ export class MatchesController {
   @Get(':matchId/ranking')
   @ApiOperation({ summary: 'Obtém o ranking de uma partida específica' })
   @ApiParam({ name: 'matchId', description: 'ID da partida para a qual o ranking será gerado' })
-  @ApiResponse({ status: 200, description: 'Ranking da partida retornado com sucesso.', type: [RankingResponseDto] })
+  @ApiResponse({ status: 200, description: 'Ranking da partida retornado com sucesso.', type: [MatchRankingResponseDto] })
   @ApiResponse({
     status: 404,
     description: 'Partida não encontrada.',
@@ -102,7 +103,7 @@ export class MatchesController {
     status: 200,
     description: 'Ranking global obtido com sucesso.',
     type: [RankingResponseDto] 
-})
+  })
   async getGlobalRanking(@Query(new ValidationPipe({ transform: true })) query: PaginationDto) {
   const page = query.page || 1;
   const limit = query.limit || 10;

@@ -95,7 +95,7 @@
 						{
 							"key": "file",
 							"type": "file",
-							"src": "/home/matheusfrancesquini/Documentos/projects/match-metrics/arquivo_para_testes.txt"
+							"src": []
 						}
 					]
 				},

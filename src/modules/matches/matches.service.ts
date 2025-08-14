@@ -107,7 +107,10 @@ export class MatchesService {
   }
 
   async getMatchRanking(matchId: number) {
-    const match = await this.matchRepository.findOneBy({ matchId });
+    const match = await this.matchRepository.findOne({
+      where: { matchId },
+      relations: ['kills']
+    });
     if (!match) {
       throw new NotFoundException(`Partida com o ID '${matchId}' não encontrada.`);
     }
@@ -150,11 +153,26 @@ export class MatchesService {
     const favoriteWeapon = winner 
         ? await this.getWinnersFavoriteWeapon(match.id)
         : 'N/A';
+    
+    const killStreaks = this.calculateKillStreaks(match.kills || []);
+    const speedKillAwardPlayers = await this.checkForSpeedKillerAward(match.id);
+
+    // console.log('Kill Streaks Calculado:', Object.fromEntries(killStreaks));
+
+    const rankingWithAwards = fullRanking.map(player => ({
+        ...player,
+        awards: {
+            NoDeathAward: (player.deaths === 0) ? true : false,
+            SpeedKillerAward: speedKillAwardPlayers.includes(player.playerName)
+        },
+        
+        killStreak: killStreaks.get(player.playerName) || 0
+    }));
 
     return {
         winner: winner,
         favoriteWeapon: favoriteWeapon,
-        ranking: fullRanking,
+        ranking: rankingWithAwards,
     };
   }
 
@@ -195,6 +213,59 @@ export class MatchesService {
     const paginatedRanking = fullRanking.slice(offset, offset + limit);
     
     return paginatedRanking;
+  }
+
+  private calculateKillStreaks(kills: Kill[]): Map<string, number> {
+    const killStreaks = new Map<string, number>();
+    const currentStreaks = new Map<string, number>();
+
+    if (!kills || kills.length === 0) {
+      return killStreaks;
+    }
+
+    for (const kill of kills) {
+      currentStreaks.set(kill.victimName, 0);
+
+      if (kill.killerName !== kill.victimName) {
+          const currentKillerStreak = (currentStreaks.get(kill.killerName) || 0) + 1;
+          currentStreaks.set(kill.killerName, currentKillerStreak);
+
+          if (!killStreaks.has(kill.killerName) || currentKillerStreak > killStreaks.get(kill.killerName)!) {
+            killStreaks.set(kill.killerName, currentKillerStreak);
+          }
+      } else {
+        currentStreaks.set(kill.killerName, 0);
+      }
+    }
+    return killStreaks;
+  }
+  
+  private async checkForSpeedKillerAward(matchId: string): Promise<string[]> {
+    const playersWithAward: string[] = [];
+    const allKills = await this.killRepository.findBy({ match: { id: matchId } });
+    
+    const killsByPlayer = new Map<string, Date[]>();
+    for (const kill of allKills) {
+        if (!killsByPlayer.has(kill.killerName)) {
+            killsByPlayer.set(kill.killerName, []);
+        }
+        killsByPlayer.get(kill.killerName)!.push(kill.killTime);
+    }
+
+    for (const [playerName, killTimes] of killsByPlayer.entries()) {
+        if (killTimes.length >= 5) {
+            const sortedTimes = killTimes.sort((a, b) => a.getTime() - b.getTime());
+            for (let i = 4; i < sortedTimes.length; i++) {
+                const timeDifference = sortedTimes[i].getTime() - sortedTimes[i-4].getTime();
+                if (timeDifference < 60000) { // 60000 ms = 1 minuto
+                    playersWithAward.push(playerName);
+                    break;
+                }
+            }
+        }
+    }
+    
+    return playersWithAward;
   }
 
   async getWinnersFavoriteWeapon(matchId: string): Promise<string> {

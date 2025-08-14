@@ -122,3 +122,8 @@ test/                # Testes E2E
 1. **Upload** de arquivo `.txt` via endpoint.
 2. **Processamento** e extração das estatísticas.
 3. **Consulta** dos rankings via endpoint GET.
+
+## 🚧 Futuras Implementações / Future Work
+Próximos passos para evoluir a POC a MVP/produção, com foco em desempenho, observabilidade, segurança e experiência do desenvolvedor.
+
+![alt text](docs/v2/diagrama_v2.jpg)

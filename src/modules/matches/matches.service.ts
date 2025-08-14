@@ -146,10 +146,7 @@ export class MatchesService {
       })
       .sort((a, b) => b.frags - a.frags);
     
-  // Encontrar o jogador com mais frags
     const winner = fullRanking.length > 0 ? fullRanking[0].playerName : null;
-
-    // Se houver um vencedor, buscar sua arma favorita
     const favoriteWeapon = winner 
         ? await this.getWinnersFavoriteWeapon(match.id)
         : 'N/A';
@@ -223,7 +220,7 @@ export class MatchesService {
       .where('kill.match_id = :matchId', { matchId })
       .andWhere('kill.killer_name = :winnerName', { winnerName: winner.playerName })
       .groupBy('weapon_name')
-      .orderBy('COUNT(weapon_name)', 'DESC') // <-- Correção aqui
+      .orderBy('COUNT(weapon_name)', 'DESC')
       .limit(1)
       .getRawOne();
 

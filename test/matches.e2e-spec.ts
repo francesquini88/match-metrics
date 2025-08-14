@@ -1,4 +1,3 @@
-// test/matches.e2e-spec.ts
 import { Test, TestingModule } from '@nestjs/testing';
 import { INestApplication, BadRequestException, ConflictException } from '@nestjs/common';
 import request from 'supertest';
@@ -43,7 +42,6 @@ describe('MatchesController (e2e)', () => {
   });
 
 it('should upload a match file and get the correct ranking', async () => {
-  // 1. Prepara o arquivo para upload
   const matchFileContent =
     `23/04/2023 10:00:00 - New match 123 has started\n` +
     `23/04/2023 10:01:00 - PlayerA killed PlayerB using AK47\n` +
@@ -51,7 +49,6 @@ it('should upload a match file and get the correct ranking', async () => {
     `23/04/2023 10:03:00 - PlayerA killed PlayerD using M16\n` +
     `23/04/2023 10:04:00 - Match 123 has ended`;
     
-  // 2. Faz o upload do arquivo
   const uploadResponse = await request(app.getHttpServer())
     .post('/matches/upload')
     .attach('file', Buffer.from(matchFileContent), 'match.txt')
@@ -59,21 +56,18 @@ it('should upload a match file and get the correct ranking', async () => {
 
   const matchId = uploadResponse.body.data.savedMatches[0].matchId;
 
-  // 3. Busca o ranking da partida
   const rankingResponse = await request(app.getHttpServer())
     .get(`/matches/${matchId}/ranking`)
     .expect(200);
 
-  // 4. Valida a estrutura completa da resposta
   expect(rankingResponse.body).toEqual(
     expect.objectContaining({
       winner: 'PlayerA',
-      favoriteWeapon: expect.any(String), // ou 'AK47' se quiser ser mais específico
+      favoriteWeapon: expect.any(String),
       ranking: expect.any(Array),
     })
   );
   
-  // 5. Valida o array de ranking separadamente
   expect(rankingResponse.body.ranking).toEqual([
     { playerName: 'PlayerA', frags: 2, deaths: 0 },
     { playerName: 'PlayerB', frags: 0, deaths: 1 },

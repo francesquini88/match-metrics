@@ -106,8 +106,7 @@ export class MatchesService {
     };
   }
 
-
-async getMatchRanking(matchId: number) {
+  async getMatchRanking(matchId: number) {
     const match = await this.matchRepository.findOneBy({ matchId });
     if (!match) {
       throw new NotFoundException(`Partida com o ID '${matchId}' não encontrada.`);
@@ -148,6 +147,45 @@ async getMatchRanking(matchId: number) {
       .sort((a, b) => b.frags - a.frags);
     
     return fullRanking;
+  }
+
+  async getGlobalRanking(page: number, limit: number) {
+    const fragsCount = await this.killRepository
+      .createQueryBuilder('kill')
+      .select('killer_name', 'playerName')
+      .addSelect('COUNT(kill.killer_name)', 'frags')
+      .where("kill.killer_name != '<WORLD>'")
+      .groupBy('killer_name')
+      .getRawMany();
+
+    const deathsCount = await this.killRepository
+        .createQueryBuilder('kill')
+        .select('victim_name', 'playerName')
+        .addSelect('COUNT(kill.victim_name)', 'deaths')
+        .groupBy('victim_name')
+        .getRawMany();
+        
+    const allUniquePlayers = [...new Set([
+      ...fragsCount.map(p => p.playerName), 
+      ...deathsCount.map(d => d.playerName)
+    ])];
+    
+    const fullRanking = allUniquePlayers
+      .map(playerName => {
+        const frags = fragsCount.find(p => p.playerName === playerName);
+        const deaths = deathsCount.find(d => d.playerName === playerName);
+        return {
+          playerName,
+          frags: frags ? parseInt(frags.frags) : 0,
+          deaths: deaths ? parseInt(deaths.deaths) : 0
+        };
+      })
+      .sort((a, b) => b.frags - a.frags);
+    
+    const offset = (page - 1) * limit;
+    const paginatedRanking = fullRanking.slice(offset, offset + limit);
+    
+    return paginatedRanking;
   }
 }
 

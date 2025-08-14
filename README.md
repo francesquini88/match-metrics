@@ -80,6 +80,7 @@ DATABASE_NAME=db
 | ------ | --------------------------------------- | -----------------------------------------|
 | POST   | `/matches/upload`                       | Upload de arquivo de log.                |
 | GET    | `/matches/{matchId}/ranking`            | Ranking de frags e mortes de uma partida.|
+| GET    | `/matches/ranking/global?page=1&limit=3`| Ranking geral de jogadores.              |
 
 ## 📒 Postman Collection
 

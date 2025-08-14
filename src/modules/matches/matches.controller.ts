@@ -1,8 +1,9 @@
-import { Controller, Post, UseInterceptors, UploadedFile, BadRequestException, Get, Param } from '@nestjs/common';
+import { Controller, Post, UseInterceptors, UploadedFile, BadRequestException, Get, Param, Query, ValidationPipe } from '@nestjs/common';
 import { FileInterceptor } from '@nestjs/platform-express';
 import { MatchesService } from './matches.service';
-import { ApiTags, ApiOperation, ApiResponse, ApiConsumes, ApiBody, ApiParam } from '@nestjs/swagger';
+import { ApiTags, ApiOperation, ApiResponse, ApiConsumes, ApiBody, ApiParam, ApiQuery } from '@nestjs/swagger';
 import { RankingResponseDto } from './dto/ranking-response.dto';
+import { PaginationDto } from './dto/pagination.dto';
 
 import 'multer';
 
@@ -91,6 +92,22 @@ export class MatchesController {
   async getMatchRanking(@Param('matchId') matchId: number) {
     const ranking = await this.matchesService.getMatchRanking(matchId);
     return ranking;
+  }
+
+  @Get('ranking/global')
+  @ApiOperation({ summary: 'Obtém ranking consolidado de todos os jogadores.' })
+  @ApiQuery({ name: 'page', required: false, description: 'Número da página (padrão: 1)', example: 1 })
+  @ApiQuery({ name: 'limit', required: false, description: 'Número de itens por página (padrão: 10)', example: 10 })
+  @ApiResponse({
+    status: 200,
+    description: 'Ranking global obtido com sucesso.',
+    type: [RankingResponseDto] 
+})
+  async getGlobalRanking(@Query(new ValidationPipe({ transform: true })) query: PaginationDto) {
+  const page = query.page || 1;
+  const limit = query.limit || 10;
+  const ranking = await this.matchesService.getGlobalRanking(page, limit);
+  return ranking;
   }
 
 }

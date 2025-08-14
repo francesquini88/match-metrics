@@ -53,11 +53,11 @@ describe('MatchesService', () => {
   });
 
 
-  it('Serviço iniciado corretamente', () => {
+  it('Deve ser definido', () => {
     expect(service).toBeDefined();
   });
 
-  describe('processarArquivoDePartida', () => {
+  describe('Deve processar o arquivo da partida', () => {
     const mockFile: Express.Multer.File = {
       fieldname: 'file',
       originalname: 'test.txt',
@@ -78,7 +78,7 @@ describe('MatchesService', () => {
       path: ''
     };
 
-    it('deve processar e salvar múltiplas partidas corretamente', async () => {
+    it('Deve processar e salvar múltiplas partidas corretamente', async () => {
         (matchRepository.save as jest.Mock).mockImplementation(match => ({ ...match, id: 'uuid-' + match.matchId }));
         (killRepository.create as jest.Mock).mockImplementation(kill => ({ ...kill, id: 'kill-uuid' }));
   
@@ -90,7 +90,7 @@ describe('MatchesService', () => {
         expect(result.alreadyExists.length).toBe(0);
       });
   
-      it('deve lidar com erros de conflito e salvar as outras partidas', async () => {
+      it('Deve lidar com erros de conflito e salvar as outras partidas', async () => {
         let saveCount = 0;
         (matchRepository.save as jest.Mock).mockImplementation(match => {
           saveCount++;
@@ -111,7 +111,7 @@ describe('MatchesService', () => {
         expect(result.savedMatches[0].matchId).toBe(2);
       });
 
-    it('deve lançar um erro se nenhuma partida válida for encontrada', async () => {
+    it('Deve lançar um erro se nenhuma partida válida for encontrada', async () => {
       const invalidFile: Express.Multer.File = {
         ...mockFile,
         buffer: Buffer.from('Conteúdo de arquivo inválido sem linhas de início/fim')
@@ -121,18 +121,17 @@ describe('MatchesService', () => {
     });
   });
 
-
-  describe('obterRankingDaPartida', () => {
+  describe('Deve obter ranking da partida', () => {
       const mockMatch = { id: 'match-uuid', matchId: 1, rawLog: '', kills: [], startDate: new Date(), endDate: new Date() };
 
-    it('deve lançar NotFoundException se a partida não existir', async () => {
+    it('Deve lançar NotFoundException se a partida não existir', async () => {
         (matchRepository.findOneBy as jest.Mock).mockResolvedValue(undefined);
 
         await expect(service.getMatchRanking(999)).rejects.toThrow(NotFoundException);
         expect(matchRepository.findOneBy).toHaveBeenCalledWith({ matchId: 999 });
     });
 
-    it('deve retornar um ranking correto ordenado por frags', async () => {
+    it('Deve retornar um ranking correto ordenado por frags', async () => {
         (matchRepository.findOneBy as jest.Mock).mockResolvedValue(mockMatch);
 
         const fragsCount = [
@@ -174,6 +173,67 @@ describe('MatchesService', () => {
             { playerName: 'PlayerE', frags: 0, deaths: 5 },
         ]);
         
+        expect(killRepository.createQueryBuilder).toHaveBeenCalledTimes(2);
+    });
+  });
+
+  describe('getGlobalRanking', () => {
+    it('Deve retornar o ranking global ordenado por frags', async () => {
+        const fragsCount = [
+            { playerName: 'PlayerA', frags: '15' },
+            { playerName: 'PlayerC', frags: '8' },
+            { playerName: 'PlayerB', frags: '5' },
+        ];
+        
+        const deathsCount = [
+            { playerName: 'PlayerB', deaths: '2' },
+            { playerName: 'PlayerC', deaths: '10' },
+            { playerName: 'PlayerD', deaths: '7' },
+        ];
+        
+        const queryBuilderMock = {
+            select: jest.fn().mockReturnThis(),
+            addSelect: jest.fn().mockReturnThis(),
+            where: jest.fn().mockReturnThis(),
+            andWhere: jest.fn().mockReturnThis(),
+            groupBy: jest.fn().mockReturnThis(),
+            orderBy: jest.fn().mockReturnThis(),
+            getRawMany: jest.fn()
+                .mockResolvedValueOnce(fragsCount)  
+                .mockResolvedValueOnce(deathsCount)
+        };
+        (killRepository.createQueryBuilder as jest.Mock).mockReturnValue(queryBuilderMock);
+
+        const globalRanking = await service.getGlobalRanking(1,4);
+
+        expect(globalRanking).toEqual([
+            { playerName: 'PlayerA', frags: 15, deaths: 0 },
+            { playerName: 'PlayerC', frags: 8, deaths: 10 },
+            { playerName: 'PlayerB', frags: 5, deaths: 2 },
+            { playerName: 'PlayerD', frags: 0, deaths: 7 },
+        ]);
+        
+        expect(killRepository.createQueryBuilder).toHaveBeenCalledTimes(2);
+    });
+
+    it('Deve retornar um array vazio se nenhuma morte for encontrada', async () => {
+        const emptyResult = [];
+        const queryBuilderMock = {
+            select: jest.fn().mockReturnThis(),
+            addSelect: jest.fn().mockReturnThis(),
+            where: jest.fn().mockReturnThis(),
+            andWhere: jest.fn().mockReturnThis(),
+            groupBy: jest.fn().mockReturnThis(),
+            orderBy: jest.fn().mockReturnThis(),
+            getRawMany: jest.fn()
+                .mockResolvedValueOnce(emptyResult)
+                .mockResolvedValueOnce(emptyResult)
+        };
+        (killRepository.createQueryBuilder as jest.Mock).mockReturnValue(queryBuilderMock);
+
+        const globalRanking = await service.getGlobalRanking(1,1);
+
+        expect(globalRanking).toEqual([]);
         expect(killRepository.createQueryBuilder).toHaveBeenCalledTimes(2);
     });
   });

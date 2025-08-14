@@ -28,7 +28,7 @@ describe('MatchesController', () => {
     service = module.get(MatchesService);
   });
 
-  it('deve ser definido', () => {
+  it('Deve ser definido', () => {
     expect(controller).toBeDefined();
   });
 
@@ -46,7 +46,7 @@ describe('MatchesController', () => {
       path: ''
     };
 
-    it('deve chamar processMatchFile e retornar uma mensagem de sucesso', async () => {
+    it('Deve chamar processMatchFile e retornar uma mensagem de sucesso', async () => {
       const serviceResult = { message: 'success', data: {} };
       service.processMatchFile.mockResolvedValue(serviceResult);
 
@@ -56,18 +56,18 @@ describe('MatchesController', () => {
       expect(result).toEqual({ message: 'Arquivo processado com sucesso.', data: serviceResult });
     });
 
-    it('deve lançar BadRequestException se nenhum arquivo for enviado', async () => {
+    it('Deve lançar BadRequestException se nenhum arquivo for enviado', async () => {
       await expect(controller.uploadFile(null)).rejects.toThrow(BadRequestException);
     });
     
-    it('deve lançar BadRequestException para um tipo de arquivo inválido', async () => {
+    it('Deve lançar BadRequestException para um tipo de arquivo inválido', async () => {
       const invalidFile = { ...mockFile, mimetype: 'application/json' };
       await expect(controller.uploadFile(invalidFile)).rejects.toThrow(BadRequestException);
     });
   });
 
   describe('obterRankingDaPartida', () => {
-    it('deve chamar getMatchRanking e retornar os dados do ranking', async () => {
+    it('Deve chamar getMatchRanking e retornar os dados do ranking', async () => {
       const mockRanking = [{ playerName: 'Player1', frags: 10, deaths: 2 }];
       service.getMatchRanking.mockResolvedValue(mockRanking);
 

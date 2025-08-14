@@ -95,7 +95,7 @@
 						{
 							"key": "file",
 							"type": "file",
-							"src": "/home/matheusfrancesquini/Área de Trabalho/testenomad.txt"
+							"src": "/home/matheusfrancesquini/Documentos/projects/match-metrics/arquivo_para_testes.txt"
 						}
 					]
 				},
@@ -193,11 +193,64 @@
 				}
 			},
 			"response": []
+		},
+		{
+			"name": "Ranking Global",
+			"event": [
+				{
+					"listen": "test",
+					"script": {
+						"exec": [
+							"  pm.test(\"Status code é 200\", function () {",
+							"    pm.response.to.have.status(200);",
+							"  });",
+							""
+						],
+						"type": "text/javascript"
+					}
+				}
+			],
+			"request": {
+				"method": "GET",
+				"header": [],
+				"url": {
+					"raw": "http://localhost:3000/matches/ranking/global?page=1&limit=3",
+					"protocol": "http",
+					"host": [
+						"localhost"
+					],
+					"port": "3000",
+					"path": [
+						"matches",
+						"ranking",
+						"global"
+					],
+					"query": [
+						{
+							"key": "page",
+							"value": "1"
+						},
+						{
+							"key": "limit",
+							"value": "3"
+						}
+					]
+				}
+			},
+			"response": []
 		}
 	],
 	"variable": [
 		{
 			"key": "lastMatchId",
+			"value": ""
+		},
+		{
+			"key": "lastMatchUUID",
+			"value": ""
+		},
+		{
+			"key": "lastMatchKillsCount",
 			"value": ""
 		}
 	]

@@ -42,7 +42,7 @@ describe('MatchesController (e2e)', () => {
     await app.close();
   });
 
-  it('Realiza o upload do arquivo e gerar o ranking correto!', async () => {
+  it('Deve realizar o upload do arquivo e gerar o ranking ordernado', async () => {
     const matchFileContent =
       `23/04/2023 10:00:00 - New match 123 has started\n` +
       `23/04/2023 10:01:00 - PlayerA killed PlayerB using AK47\n` +
@@ -73,9 +73,24 @@ describe('MatchesController (e2e)', () => {
     expect(rankingResponse.body).toHaveLength(expectedRanking.length);
     });
 
-  it('Retornar 404 para um id de match inexistente', async () => {
+  it('Deve retornar 404 para um matchId inexistente', async () => {
     await request(app.getHttpServer())
       .get('/matches/999/ranking')
       .expect(404);
   });
+
+  it('Deve retornar um ranking geral por players', async () => {
+      
+      const response = await request(app.getHttpServer())
+        .get('/matches/ranking/global')
+        .expect(200);
+
+      expect(response.body.length).toBeGreaterThan(0);
+      expect(response.body[0]).toHaveProperty('playerName');
+      expect(response.body[0]).toHaveProperty('frags');
+      expect(response.body[0]).toHaveProperty('deaths');
+      
+      expect(response.body[0].frags).toBeGreaterThanOrEqual(response.body[1].frags);
+  });
+
 });

@@ -31,7 +31,7 @@ Como parte da documentação, vários artefatos foram preparados para auxiliar o
 - **ADR(Registros de decisões de arquitetura)**: [Justificativa](/docs/architecture-decision.md)
 - **Swagger UI**: `http://localhost:4000/api-docs`
 - **Banco de Dados**: [Justificativa](/docs/banco-de-dados.md)
-- **Vídeo explicativo da aplicação**: 
+- **Vídeo explicativo da aplicação**: https://youtu.be/wzldnw8R6cs
 - **Diagramas**: Diagramas do modelo C4 nas camadas de contexto, contêiner e componente, para oferecer uma visão abrangente e estruturada da arquitetura do sistema.
   - [Context](/docs/c4-model/systemcontext.png)
   - [Container](/docs/c4-model/container.png)

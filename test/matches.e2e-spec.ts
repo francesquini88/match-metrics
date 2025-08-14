@@ -1,5 +1,5 @@
 import { Test, TestingModule } from '@nestjs/testing';
-import { INestApplication, BadRequestException, ConflictException } from '@nestjs/common';
+import { INestApplication } from '@nestjs/common';
 import request from 'supertest';
 import { getRepositoryToken, TypeOrmModule } from '@nestjs/typeorm';
 import { Connection } from 'typeorm';
@@ -41,40 +41,64 @@ describe('MatchesController (e2e)', () => {
     await app.close();
   });
 
-it('should upload a match file and get the correct ranking', async () => {
-  const matchFileContent =
-    `23/04/2023 10:00:00 - New match 123 has started\n` +
-    `23/04/2023 10:01:00 - PlayerA killed PlayerB using AK47\n` +
-    `23/04/2023 10:02:00 - <WORLD> killed PlayerC by DROWN\n` +
-    `23/04/2023 10:03:00 - PlayerA killed PlayerD using M16\n` +
-    `23/04/2023 10:04:00 - Match 123 has ended`;
+  it('Deve realizar o upload do arquivo e gerar o ranking ordernado', async () => {
+    const matchFileContent =
+      `23/04/2023 10:00:00 - New match 123 has started\n` +
+      `23/04/2023 10:01:00 - PlayerA killed PlayerB using AK47\n` +
+      `23/04/2023 10:02:00 - <WORLD> killed PlayerC by DROWN\n` +
+      `23/04/2023 10:03:00 - PlayerA killed PlayerD using M16\n` +
+      `23/04/2023 10:04:00 - Match 123 has ended`;
+      
+    const uploadResponse = await request(app.getHttpServer())
+      .post('/matches/upload')
+      .attach('file', Buffer.from(matchFileContent), 'match.txt')
+      .expect(201);
+
+    const matchId = uploadResponse.body.data.savedMatches[0].matchId;
+
+    const rankingResponse = await request(app.getHttpServer())
+      .get(`/matches/${matchId}/ranking`)
+      .expect(200);
+
+    expect(rankingResponse.body).toEqual(
+      expect.objectContaining({
+        winner: 'PlayerA',
+        favoriteWeapon: 'AK47',
+        ranking: expect.any(Array),
+      })
+    );
     
-  const uploadResponse = await request(app.getHttpServer())
-    .post('/matches/upload')
-    .attach('file', Buffer.from(matchFileContent), 'match.txt')
-    .expect(201);
-
-  const matchId = uploadResponse.body.data.savedMatches[0].matchId;
-
-  const rankingResponse = await request(app.getHttpServer())
-    .get(`/matches/${matchId}/ranking`)
-    .expect(200);
-
-  expect(rankingResponse.body).toEqual(
-    expect.objectContaining({
-      winner: 'PlayerA',
-      favoriteWeapon: expect.any(String),
-      ranking: expect.any(Array),
-    })
-  );
-  
-  expect(rankingResponse.body.ranking).toEqual([
-    { playerName: 'PlayerA', frags: 2, deaths: 0 },
-    { playerName: 'PlayerB', frags: 0, deaths: 1 },
-    { playerName: 'PlayerC', frags: 0, deaths: 1 },
-    { playerName: 'PlayerD', frags: 0, deaths: 1 },
-  ]);
-});
+    expect(rankingResponse.body.ranking).toEqual([
+      {
+        playerName: 'PlayerA',
+        frags: 2,
+        deaths: 0,
+        awards: { NoDeathAward: true, SpeedKillerAward: false },
+        killStreak: 2
+      },
+      {
+        playerName: 'PlayerB',
+        frags: 0,
+        deaths: 1,
+        awards: { NoDeathAward: false, SpeedKillerAward: false },
+        killStreak: 0
+      },
+      {
+        playerName: 'PlayerC',
+        frags: 0,
+        deaths: 1,
+        awards: { NoDeathAward: false, SpeedKillerAward: false },
+        killStreak: 0
+      },
+      {
+        playerName: 'PlayerD',
+        frags: 0,
+        deaths: 1,
+        awards: { NoDeathAward: false, SpeedKillerAward: false },
+        killStreak: 0
+      },
+    ]);
+  });
 
   it('Deve retornar 404 para um matchId inexistente', async () => {
     await request(app.getHttpServer())
@@ -95,5 +119,4 @@ it('should upload a match file and get the correct ranking', async () => {
       
       expect(response.body[0].frags).toBeGreaterThanOrEqual(response.body[1].frags);
   });
-
 });

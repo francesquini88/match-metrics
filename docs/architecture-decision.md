@@ -86,9 +86,6 @@ Implementar um **serviço de processamento de logs** com as seguintes regras:
 * Requer validação e testes extensivos para evitar inconsistências.
 * Processamento síncrono pode ser custoso para arquivos muito grandes (possível melhoria futura com fila de mensagens).
 
-Perfeito. Aqui está a ADR focada na decisão sobre uso do **README detalhado** como parte da estratégia de documentação da aplicação:
-
-
 ## ADR-004: Uso de README Detalhado como Documento Principal de Referência
 
 **Status**: Aceito

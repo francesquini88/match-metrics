@@ -1,0 +1,45 @@
+name: Deploy (Prova de Conceito)
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  deploy:
+    name: Simulação de Deploy Node.js + Terraform
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout do código
+        uses: actions/checkout@v4
+
+      - name: Configurar Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - name: Instalar dependências
+        run: npm ci
+
+      - name: Executar testes (simulação)
+        run: |
+          echo "Simulação: npm test"
+
+      - name: Build do projeto (simulação)
+        run: |
+          echo "Simulação: npm run build"
+
+      - name: Simular análise SonarQube (Quality Gate)
+        run: |
+          echo "Simulação: sonar-scanner com validação Quality Gate"
+
+      - name: Simular Terraform Apply
+        working-directory: infra/terraform
+        run: |
+          echo "Simulação: terraform init"
+          echo "Simulação: terraform apply -auto-approve"
+
+      - name: Mensagem final
+        run: echo "Deploy simulado com sucesso"

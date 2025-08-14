@@ -35,7 +35,7 @@ describe('MatchesController (e2e)', () => {
     await app.init();
     
     const connection = app.get(Connection);
-    await connection.query('TRUNCATE TABLE "matches", "users", "kills" RESTART IDENTITY CASCADE;');
+    await connection.query('TRUNCATE TABLE "matches", "kills" RESTART IDENTITY CASCADE;');
   });
 
   afterAll(async () => {

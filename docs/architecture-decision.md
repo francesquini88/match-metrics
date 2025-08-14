@@ -128,9 +128,6 @@ Utilizar o arquivo **`README.md`** como documento principal de referência do pr
 * Exige disciplina para manter o README atualizado conforme o projeto evolui.
 * Pode tornar-se extenso, demandando organização clara e tópicos bem estruturados.
 
-Perfeito — seguem as **ADRs** no **mesmo padrão** do seu exemplo (Status, Data, Contexto, Decisão, Consequências), cobrindo as quatro features:
-
-
 ## ADR-005: Ranking Global de Jogadores 
 
 **Status**: Aceito

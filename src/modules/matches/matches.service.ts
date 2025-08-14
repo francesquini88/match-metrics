@@ -146,7 +146,19 @@ export class MatchesService {
       })
       .sort((a, b) => b.frags - a.frags);
     
-    return fullRanking;
+  // Encontrar o jogador com mais frags
+    const winner = fullRanking.length > 0 ? fullRanking[0].playerName : null;
+
+    // Se houver um vencedor, buscar sua arma favorita
+    const favoriteWeapon = winner 
+        ? await this.getWinnersFavoriteWeapon(match.id)
+        : 'N/A';
+
+    return {
+        winner: winner,
+        favoriteWeapon: favoriteWeapon,
+        ranking: fullRanking,
+    };
   }
 
   async getGlobalRanking(page: number, limit: number) {
@@ -187,5 +199,36 @@ export class MatchesService {
     
     return paginatedRanking;
   }
+
+  async getWinnersFavoriteWeapon(matchId: string): Promise<string> {
+  const winner = await this.killRepository
+    .createQueryBuilder('kill')
+    .select('killer_name', 'playerName')
+    .addSelect('COUNT(killer_name)', 'frags')
+    .where('kill.match_id = :matchId', { matchId })
+    .andWhere("kill.killer_name != '<WORLD>'")
+    .groupBy('killer_name')
+    .orderBy('frags', 'DESC')
+    .limit(1)
+    .getRawOne();
+    
+  if (!winner) {
+    return 'N/A';
+  }
+
+    const favoriteWeapon = await this.killRepository
+      .createQueryBuilder('kill')
+      .select('weapon_name', 'weaponName')
+      .addSelect('COUNT(weapon_name)', 'usageCount')
+      .where('kill.match_id = :matchId', { matchId })
+      .andWhere('kill.killer_name = :winnerName', { winnerName: winner.playerName })
+      .groupBy('weapon_name')
+      .orderBy('COUNT(weapon_name)', 'DESC') // <-- Correção aqui
+      .limit(1)
+      .getRawOne();
+
+  return favoriteWeapon ? favoriteWeapon.weaponName : 'N/A';
+}
+
 }
 

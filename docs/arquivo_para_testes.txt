@@ -1,212 +1,99 @@
-{
-	"info": {
-		"_postman_id": "d0c0d407-25d8-40be-b476-e5c17a23cbeb",
-		"name": "Metric Logs",
-		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
-		"_exporter_id": "12292145"
-	},
-	"item": [
-		{
-			"name": "Upload File",
-			"event": [
-				{
-					"listen": "test",
-					"script": {
-						"exec": [
-							"(() => {",
-							"  pm.test(\"Status code é 201\", function () {",
-							"    pm.response.to.have.status(201);",
-							"  });",
-							"",
-							"  let payload;",
-							"  try {",
-							"    payload = pm.response.json();",
-							"  } catch (e) {",
-							"    pm.test(\"Resposta é JSON válido\", function () {",
-							"      pm.expect.fail(\"Resposta não é um JSON válido: \" + e.message);",
-							"    });",
-							"    return;",
-							"  }",
-							"",
-							"  const result = (payload && payload.data) ? payload.data : payload;",
-							"",
-							"  function setVar(key, value) {",
-							"    if (value === undefined || value === null) return;",
-							"    try { pm.environment.set(key, value); } catch (_) {}",
-							"    try { pm.collectionVariables.set(key, value); } catch (_) {}",
-							"  }",
-							"",
-							"  function isNonEmptyArray(a) {",
-							"    return Array.isArray(a) && a.length > 0;",
-							"  }",
-							"",
-							"  let picked = null;",
-							"",
-							"  if (isNonEmptyArray(result.savedMatches)) {",
-							"    picked = result.savedMatches[0];",
-							"",
-							"    pm.test(\"Selecionou match de savedMatches\", function () {",
-							"      pm.expect(picked).to.be.an(\"object\");",
-							"      pm.expect(picked).to.have.property(\"matchId\");",
-							"    });",
-							"",
-							"    setVar(\"lastMatchId\", picked.matchId);                         ",
-							"    setVar(\"lastMatchUUID\", picked.id);                            ",
-							"    setVar(\"lastMatchKillsCount\", Array.isArray(picked.kills) ? picked.kills.length : 0);",
-							"",
-							"  } else if (isNonEmptyArray(result.alreadyExists)) {",
-							"    picked = result.alreadyExists[0];",
-							"",
-							"    pm.test(\"Selecionou match de alreadyExists (fallback)\", function () {",
-							"      pm.expect(picked).to.be.an(\"object\");",
-							"      pm.expect(picked).to.have.property(\"matchId\");",
-							"    });",
-							"",
-							"    setVar(\"lastMatchId\", picked.matchId);",
-							"",
-							"  } else {",
-							"    pm.test(\"Nenhuma partida encontrada\", function () {",
-							"      pm.expect.fail(\"Nem savedMatches nem alreadyExists possuem registros.\");",
-							"    });",
-							"  }",
-							"",
-							"",
-							"  if (picked) {",
-							"    console.log(\"Match selecionada:\", picked);",
-							"    console.log(\"Variáveis definidas:\", {",
-							"      lastMatchId: pm.variables.get(\"lastMatchId\"),",
-							"      lastMatchUUID: pm.variables.get(\"lastMatchUUID\"),",
-							"      lastMatchKillsCount: pm.variables.get(\"lastMatchKillsCount\"),",
-							"    });",
-							"  }",
-							"})();",
-							""
-						],
-						"type": "text/javascript"
-					}
-				}
-			],
-			"request": {
-				"method": "POST",
-				"header": [],
-				"body": {
-					"mode": "formdata",
-					"formdata": [
-						{
-							"key": "file",
-							"type": "file",
-							"src": "/home/matheusfrancesquini/Documentos/projects/match-metrics/arquivo_para_testes.txt"
-						}
-					]
-				},
-				"url": {
-					"raw": "http://localhost:3000/matches/upload",
-					"protocol": "http",
-					"host": [
-						"localhost"
-					],
-					"port": "3000",
-					"path": [
-						"matches",
-						"upload"
-					]
-				}
-			},
-			"response": []
-		},
-		{
-			"name": "Ranking de Partidas",
-			"event": [
-				{
-					"listen": "test",
-					"script": {
-						"exec": [
-							"  pm.test(\"Status code é 200\", function () {",
-							"    pm.response.to.have.status(200);",
-							"  });",
-							""
-						],
-						"type": "text/javascript"
-					}
-				}
-			],
-			"protocolProfileBehavior": {
-				"disableBodyPruning": true
-			},
-			"request": {
-				"method": "GET",
-				"header": [],
-				"body": {
-					"mode": "formdata",
-					"formdata": [
-						{
-							"key": "file",
-							"type": "file",
-							"src": "/home/matheusfrancesquini/Área de Trabalho/testenomad.txt"
-						}
-					]
-				},
-				"url": {
-					"raw": "http://localhost:3000/matches/{{lastMatchId}}/ranking",
-					"protocol": "http",
-					"host": [
-						"localhost"
-					],
-					"port": "3000",
-					"path": [
-						"matches",
-						"{{lastMatchId}}",
-						"ranking"
-					]
-				}
-			},
-			"response": []
-		},
-		{
-			"name": "Healtcheck",
-			"event": [
-				{
-					"listen": "test",
-					"script": {
-						"exec": [
-							"  pm.test(\"Status code é 200\", function () {",
-							"    pm.response.to.have.status(200);",
-							"  });",
-							""
-						],
-						"type": "text/javascript"
-					}
-				}
-			],
-			"request": {
-				"method": "GET",
-				"header": [],
-				"url": {
-					"raw": "localhost:3000/healthcheck",
-					"host": [
-						"localhost"
-					],
-					"port": "3000",
-					"path": [
-						"healthcheck"
-					]
-				}
-			},
-			"response": []
-		}
-	],
-	"variable": [
-		{
-			"key": "lastMatchId",
-			"value": ""
-		},
-		{
-			"key": "lastMatchUUID",
-			"value": ""
-		},
-		{
-			"key": "lastMatchKillsCount",
-			"value": ""
-		}
-	]
-}
+12/08/2025 20:20:00 - New match 9999 has started
+12/08/2025 20:20:05 - Player1 killed Player2 using AK47
+12/08/2025 20:20:10 - Player3 killed Player4 using M4A1
+12/08/2025 20:20:15 - Player5 killed Player6 using SHOTGUN
+12/08/2025 20:20:20 - Player7 killed Player8 using AWP
+12/08/2025 20:20:25 - Player9 killed Player10 using M16
+12/08/2025 20:20:30 - Player11 killed Player12 using PISTOL
+12/08/2025 20:20:35 - Player13 killed Player14 using GRENADE
+12/08/2025 20:20:40 - Player15 killed Player16 using AK47
+12/08/2025 20:20:45 - Player17 killed Player18 using M4A1
+12/08/2025 20:20:50 - Player19 killed Player20 using KNIFE
+12/08/2025 20:20:55 - Player1 killed Player3 using AK47
+12/08/2025 20:21:00 - Player5 killed Player7 using M4A1
+
+12/08/2025 20:22:01 - PlayerA killed Player11 using M16
+12/08/2025 20:22:15 - PlayerA killed Player13 using PISTOL
+12/08/2025 20:22:20 - PlayerA killed Player15 using AWP
+12/08/2025 20:22:28 - PlayerA killed Player17 using M16
+12/08/2025 20:22:40 - PlayerA killed Player19 using PISTOL
+12/08/2025 20:22:50 - PlayerA killed Player5 using AK47
+12/08/2025 20:22:59 - PlayerA killed Player9 using M4A1
+12/08/2025 20:23:05 - <WORLD> killed PlayerB by DROWN
+
+12/08/2025 20:24:00 - PlayerB killed Player1 using SHOTGUN
+12/08/2025 20:24:08 - PlayerB killed Player2 using AK47
+12/08/2025 20:24:15 - PlayerB killed Player3 using M4A1
+12/08/2025 20:24:22 - PlayerB killed Player4 using GRENADE
+12/08/2025 20:24:30 - PlayerB killed Player6 using M16
+12/08/2025 20:24:45 - PlayerB killed Player8 using AWP
+12/08/2025 20:24:55 - PlayerB killed Player10 using KNIFE
+12/08/2025 20:25:00 - PlayerB killed Player12 using PISTOL
+
+12/08/2025 20:25:05 - WinnerX killed Player16 using M16
+12/08/2025 20:25:10 - WinnerX killed Player18 using M4A1
+12/08/2025 20:25:15 - WinnerX killed Player20 using AWP
+12/08/2025 20:25:20 - <WORLD> killed PlayerA by DROWN
+12/08/2025 20:26:00 - <WORLD> killed PlayerB by DROWN
+
+12/08/2025 20:27:00 - Match 9999 has ended
+
+
+12/08/2025 20:20:00 - New match 888 has started
+12/08/2025 20:20:05 - Player1 killed Player2 using AK47
+12/08/2025 20:20:10 - Player3 killed Player4 using M4A1
+12/08/2025 20:20:15 - Player5 killed Player6 using SHOTGUN
+12/08/2025 20:20:20 - Player7 killed Player8 using AWP
+12/08/2025 20:20:25 - Player9 killed Player10 using M16
+12/08/2025 20:20:30 - Player11 killed Player12 using PISTOL
+12/08/2025 20:20:35 - Player13 killed Player14 using GRENADE
+12/08/2025 20:20:40 - Player15 killed Player16 using AK47
+12/08/2025 20:20:45 - Player17 killed Player18 using M4A1
+12/08/2025 20:20:50 - Player19 killed Player20 using KNIFE
+12/08/2025 20:20:55 - Player1 killed Player3 using AK47
+12/08/2025 20:21:00 - Player5 killed Player7 using M4A1
+
+12/08/2025 20:22:01 - PlayerA killed Player11 using M16
+12/08/2025 20:22:15 - PlayerA killed Player13 using PISTOL
+12/08/2025 20:22:20 - PlayerA killed Player15 using AWP
+12/08/2025 20:22:28 - PlayerA killed Player17 using M16
+12/08/2025 20:22:40 - PlayerA killed Player19 using PISTOL
+12/08/2025 20:22:50 - PlayerA killed Player5 using AK47
+12/08/2025 20:22:59 - PlayerA killed Player9 using M4A1
+12/08/2025 20:23:05 - <WORLD> killed PlayerB by DROWN
+
+12/08/2025 20:24:00 - PlayerB killed Player1 using SHOTGUN
+12/08/2025 20:24:08 - PlayerB killed Player2 using AK47
+12/08/2025 20:24:15 - PlayerB killed Player3 using M4A1
+12/08/2025 20:24:22 - PlayerB killed Player4 using GRENADE
+12/08/2025 20:24:30 - PlayerB killed Player6 using M16
+12/08/2025 20:24:45 - PlayerB killed Player8 using AWP
+12/08/2025 20:24:55 - PlayerB killed Player10 using KNIFE
+12/08/2025 20:25:00 - PlayerB killed Player12 using PISTOL
+
+12/08/2025 20:25:05 - WinnerX killed Player16 using M16
+12/08/2025 20:25:10 - WinnerX killed Player18 using M4A1
+12/08/2025 20:25:15 - WinnerX killed Player20 using AWP
+12/08/2025 20:25:20 - <WORLD> killed PlayerA by DROWN
+12/08/2025 20:26:00 - <WORLD> killed PlayerB by DROWN
+
+12/08/2025 20:27:00 - Match 888 has ended
+
+
+
+23/04/2019 15:34:22 - New match 11348965 has started
+23/04/2019 15:36:04 - Roman killed Nick using M16
+23/04/2019 15:36:33 - <WORLD> killed Nick by DROWN
+23/04/2019 15:39:22 - Match 11348965 has ended
+23/04/2021 16:14:22 - New match 11348966 has started
+23/04/2021 16:26:04 - Roman killed Marcus using M16
+23/04/2021 16:36:33 - <WORLD> killed Marcus by DROWN
+23/04/2021 16:49:22 - Match 11348966 has ended
+24/04/2020 16:14:22 - New match 11348961 has started
+24/04/2020 16:26:12 - Roman killed Marcus using M16
+
+24/04/2020 16:35:56 - Marcus killed Jhon using AK47
+24/04/2020 17:12:34 - Roman killed Bryian using M16
+24/04/2020 18:26:14 - Bryan killed Marcus using AK47
+24/04/2020 19:36:33 - <WORLD> killed Marcus by DROWN
+24/04/2020 20:19:22 - Match 11348961 has ended

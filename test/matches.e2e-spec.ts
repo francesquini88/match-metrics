@@ -42,36 +42,45 @@ describe('MatchesController (e2e)', () => {
     await app.close();
   });
 
-  it('Deve realizar o upload do arquivo e gerar o ranking ordernado', async () => {
-    const matchFileContent =
-      `23/04/2023 10:00:00 - New match 123 has started\n` +
-      `23/04/2023 10:01:00 - PlayerA killed PlayerB using AK47\n` +
-      `23/04/2023 10:02:00 - <WORLD> killed PlayerC by DROWN\n` +
-      `23/04/2023 10:03:00 - PlayerA killed PlayerD using M16\n` +
-      `23/04/2023 10:04:00 - Match 123 has ended`;
-      
-    const uploadResponse = await request(app.getHttpServer())
-        .post('/matches/upload')
-        .attach('file', Buffer.from(matchFileContent), 'match.txt')
-        .expect(201);
+it('should upload a match file and get the correct ranking', async () => {
+  // 1. Prepara o arquivo para upload
+  const matchFileContent =
+    `23/04/2023 10:00:00 - New match 123 has started\n` +
+    `23/04/2023 10:01:00 - PlayerA killed PlayerB using AK47\n` +
+    `23/04/2023 10:02:00 - <WORLD> killed PlayerC by DROWN\n` +
+    `23/04/2023 10:03:00 - PlayerA killed PlayerD using M16\n` +
+    `23/04/2023 10:04:00 - Match 123 has ended`;
+    
+  // 2. Faz o upload do arquivo
+  const uploadResponse = await request(app.getHttpServer())
+    .post('/matches/upload')
+    .attach('file', Buffer.from(matchFileContent), 'match.txt')
+    .expect(201);
 
-    const matchId = uploadResponse.body.data.savedMatches[0].matchId;
+  const matchId = uploadResponse.body.data.savedMatches[0].matchId;
 
-    const rankingResponse = await request(app.getHttpServer())
-      .get(`/matches/${matchId}/ranking`)
-      .expect(200);
+  // 3. Busca o ranking da partida
+  const rankingResponse = await request(app.getHttpServer())
+    .get(`/matches/${matchId}/ranking`)
+    .expect(200);
 
-    const expectedRanking = [
+  // 4. Valida a estrutura completa da resposta
+  expect(rankingResponse.body).toEqual(
+    expect.objectContaining({
+      winner: 'PlayerA',
+      favoriteWeapon: expect.any(String), // ou 'AK47' se quiser ser mais específico
+      ranking: expect.any(Array),
+    })
+  );
+  
+  // 5. Valida o array de ranking separadamente
+  expect(rankingResponse.body.ranking).toEqual([
     { playerName: 'PlayerA', frags: 2, deaths: 0 },
     { playerName: 'PlayerB', frags: 0, deaths: 1 },
     { playerName: 'PlayerC', frags: 0, deaths: 1 },
     { playerName: 'PlayerD', frags: 0, deaths: 1 },
-    ];
-
-    expect(rankingResponse.body).toEqual(expect.arrayContaining(expectedRanking));
-
-    expect(rankingResponse.body).toHaveLength(expectedRanking.length);
-    });
+  ]);
+});
 
   it('Deve retornar 404 para um matchId inexistente', async () => {
     await request(app.getHttpServer())

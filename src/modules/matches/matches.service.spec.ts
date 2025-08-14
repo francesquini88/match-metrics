@@ -23,7 +23,9 @@ const mockKillRepository = () => ({
     andWhere: jest.fn().mockReturnThis(),
     groupBy: jest.fn().mockReturnThis(),
     orderBy: jest.fn().mockReturnThis(),
+    limit: jest.fn().mockReturnThis(),
     getRawMany: jest.fn(),
+    getRawOne: jest.fn(),
   })),
 });
 
@@ -154,26 +156,37 @@ describe('MatchesService', () => {
             andWhere: jest.fn().mockReturnThis(),
             groupBy: jest.fn().mockReturnThis(),
             orderBy: jest.fn().mockReturnThis(),
+            limit: jest.fn().mockReturnThis(),
             getRawMany: jest.fn(),
+            getRawOne: jest.fn(),
         };
 
         (killRepository.createQueryBuilder as jest.Mock).mockReturnValue(queryBuilderMock);
         
+        queryBuilderMock.getRawOne
+          .mockResolvedValueOnce({ playerName: 'PlayerA', frags: '10' });
+        queryBuilderMock.getRawOne
+          .mockResolvedValueOnce({ weaponName: 'M16', usageCount: '5' });
         queryBuilderMock.getRawMany
-          .mockResolvedValueOnce(fragsCount) 
-          .mockResolvedValueOnce(deathsCount); 
+          .mockResolvedValueOnce(fragsCount)
+          .mockResolvedValueOnce(deathsCount);
+        
+        const result = await service.getMatchRanking(1);
 
-        const ranking = await service.getMatchRanking(1);
-
-        expect(ranking).toEqual([
+        expect(result).toEqual({
+          winner: 'PlayerA',
+          favoriteWeapon: 'M16',
+          ranking: [
             { playerName: 'PlayerA', frags: 10, deaths: 0 },
             { playerName: 'PlayerB', frags: 5, deaths: 2 },
             { playerName: 'PlayerC', frags: 1, deaths: 8 },
             { playerName: 'PlayerD', frags: 0, deaths: 0 },
             { playerName: 'PlayerE', frags: 0, deaths: 5 },
-        ]);
+          ],
+        });
         
-        expect(killRepository.createQueryBuilder).toHaveBeenCalledTimes(2);
+        expect(killRepository.createQueryBuilder).toHaveBeenCalledTimes(4);
+
     });
   });
 

@@ -1,0 +1,22 @@
+name: Destroy Infra (Prova de Conceito)
+
+on:
+  workflow_dispatch:
+
+jobs:
+  destroy:
+    name: Simulação de Terraform Destroy
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout do código
+        uses: actions/checkout@v4
+
+      - name: Simular Terraform Destroy (Prova de Conceito)
+        working-directory: infra/terraform
+        run: |
+          echo "Simulação: terraform init"
+          echo "Simulação: terraform destroy -auto-approve"
+
+      - name: Mensagem final
+        run: echo "Infraestrutura destruída (simulação)"
